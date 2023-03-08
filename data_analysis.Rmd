@@ -13,6 +13,7 @@ editor_options:
 # Load estimation from differrnt datasets
 listsig<-c(0.0001,0.001,0.01,0.1,1,10,40,80,100,200,500,700,1000,1500,2000,2500,10000,100000)
 load("C:/Users/mmmz/OneDrive - University of Leeds/third year/REAL_DATA/smoothing.RData")
+#listsig<-c(0.001,0.01,0.1,1)
 library(tidyverse)
 library(dplyr)
 library(sf)
@@ -95,6 +96,67 @@ library(plotly)
 library(scales) # to access break formatting functions
 pal.bands(coolwarm, parula, ocean.haline, brewer.blues, cubicl, kovesi.rainbow, ocean.phase, brewer.paired(12), stepped,
           main="Colormap suggestions")
+```
+
+
+
+
+```{r }
+#install.packages('extraDistr')
+library(extraDistr)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
+ggplot(data.frame(x = c(0, 200)), aes(x)) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=40), aes(color = "b"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=80), aes(color = "c"), size = 0.5)+
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100), aes(color = "d"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=200), aes(color = "e"), size = 0.5)+
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=500), aes(color = "f"), size = 0.5)+
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=1000), aes(color = "g"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10000), aes(color = "h"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100000), aes(color = "i"), size = 0.5)+
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=1e-04), aes(color = "j"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.001), aes(color = "k"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.1), aes(color = "l"), size = 0.5)+
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_color_discrete(name = "",
+                       labels = c("a" = expression(~ tau == 10),
+                                  "b" = expression(~ tau == 40),
+                                  "c" = expression(~ tau == 80),
+                                  "d" = expression(~ tau == 100),
+                                  "e" = expression(~ tau == 200),
+                                  "f" = expression(~ tau == 500),
+                                 "g" = expression(~ tau == 1000),
+                                 "h" = expression(~ tau == 10000),
+                                 "i" = expression(~ tau == 100000),
+                                 "j"=expression(~ tau==1e-04),
+                                 "k"=expression(~ tau==0.001),
+                                 "l"=expression(~ tau==0.1))
+              ) +
+                             ylab("Probability")+xlab("Value") +
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+
+
+ggplot(data.frame(x = c(0, 200)), aes(x)) +
+    stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.1), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100), aes(color = "b"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10000), aes(color = "c"), size = 0.5)+
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_color_discrete(name = "",
+                       labels = c("a"=expression(~ tau == 0.1),
+                         "a" = expression(~ tau == 10),
+                                 "b" = expression(~ tau == 100),
+                                 "c" = expression(~ tau == 10000))) +
+                             ylab("Probability")+xlab("Value") +
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+ theme(legend.position = "bottom")
+
+
 ```
 
 
