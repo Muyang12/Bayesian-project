@@ -1,0 +1,1617 @@
+---
+title: "Sensitive anlaysis"
+author: "Muyang"q
+date: "07/11/2020"
+output: 
+  pdf_document: 
+    fig_height: 5
+fig_height: 6
+editor_options: 
+  chunk_output_type: console
+---
+```{r, include=FALSE}
+# Load estimation from differrnt datasets
+listsig<-c(0.0001,0.001,0.01,0.1,1,10,40,80,100,200,500,700,1000,1500,2000,2500,10000,100000)
+load("C:/Users/mmmz/OneDrive - University of Leeds/third year/REAL_DATA/smoothing.RData")
+#listsig<-c(0.001,0.01,0.1,1)
+library(tidyverse)
+library(dplyr)
+library(sf)
+library(raster)
+library(dplyr)
+library(spData)
+require(pals)
+library(reshape)
+library(ggplot2)
+library(plotly)
+library(scales)
+#load("C:/Users/mmmz/OneDrive - University of Leeds/Second year/estimation delta=0.5 poisson noise/Gaussian/gaussian.0.5.RData")
+listsig<-c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9)
+nburn=100
+iteration=1000
+for (i in 1:length(listsig)) {
+  sigma.x<-listsig[i]
+  load(paste0("C:/Users/mmmz/Downloads/dis_ex_fixed_p/1 _ ",sigma.x," _ .RData")) #type name of document
+  attach(result)
+  x.mean.g<-apply(xstore[,,(nburn+1):(nburn+iteration)], c(1,2), mean)
+  x.sd.g<-apply(xstore[,,(nburn+1):(nburn+iteration)], c(1,2), sd)
+  x.lci.g    = apply(xstore[,,(nburn+1):(nburn+iteration)], c(1,2), quantile, 0.025) #credit interval
+  x.uci.g  = apply(xstore[,,(nburn+1):(nburn+iteration)], c(1,2), quantile, 0.975)
+  x.ciw.g= x.uci.g - x.lci.g
+  # mu.mean.g<-apply(mustore[,,(nburn+1):(nburn+iteration)],c(1,2),mean)
+  assign(paste0("x.sd.","g",sigma.x),x.sd.g)
+  assign(paste0("x.mean","g",sigma.x),x.mean.g)
+  assign(paste0("x.lci","g",sigma.x),x.lci.g)
+  assign(paste0("x.uci","g",sigma.x),x.uci.g)
+  assign(paste0("x.ciw","g",sigma.x),x.ciw.g)
+  assign(paste0("xstore.","g",sigma.x),xstore)
+  # assign(paste0("mustore.",sigma.x),mustore)
+  detach(result)
+}
+
+
+
+for (i in 1:length(listsig)) {
+  sigma.x<-listsig[i]
+  load(paste("C:/Users/mmmz/OneDrive - University of Leeds/Second year/estimation delta=0.5 poisson noise/robust_analysis/Poisson9 smoothing distribution 0.5",sigma.x,".RData",sep="_"))
+  x.mean.l<-apply(xstore[,,(nburn+1):(nburn+iteration)], c(1,2), mean)
+  x.sd.l<-apply( xstore[,,(nburn+1):(nburn+iteration)], c(1,2), sd)
+  x.lci.l    = apply( xstore[,,(nburn+1):(nburn+iteration)], c(1,2), quantile, 0.025) #credit interval
+  x.uci.l  = apply( xstore[,,(nburn+1):(nburn+iteration)], c(1,2), quantile, 0.975)
+  x.ciw.l= x.uci.l - x.lci.l
+  mu.mean<-apply(mustore[,,(nburn+1):(nburn+iteration)],c(1,2),mean)
+  assign(paste0("sigma.x",sigma.x),sigma.x)
+  assign(paste0("x.sd.l",sigma.x),x.sd.l)
+  assign(paste0("x.mean.l",sigma.x),x.mean.l)
+  assign(paste0("x.lci.l",sigma.x),x.lci.l)
+  assign(paste0("x.uci.l",sigma.x),x.uci.l)
+  assign(paste0("x.ciw.l",sigma.x),x.ciw.l)
+  #assign(paste0("MSE",sigma.x),MSE)
+  #assign(paste0("RSS",sigma.x),RSS)
+  assign(paste0("xstore.l",sigma.x),xstore)
+  assign(paste0("mustore.l",sigma.x),mustore)
+  #rm(list=setdiff(ls(), c("i","listsig","sigma.x",paste0("xstore.",sigma.x),paste0("mustore.",sigma.x))))
+}
+
+```
+
+
+
+```{r , include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=5) 
+#install.packages("melt")
+#install.packages("reshape")
+#install.packages('ggrepel')
+#install.packages("ggplot2")
+#install.packages('pals')
+#install.packages('reshape2')
+#install.packages('latticExtra')
+#load("data.Rdata")
+#save.image("data.Rdata")
+require(pals)
+library(reshape)
+library(ggplot2)
+library(plotly)
+library(scales) # to access break formatting functions
+pal.bands(coolwarm, parula, ocean.haline, brewer.blues, cubicl, kovesi.rainbow, ocean.phase, brewer.paired(12), stepped,
+          main="Colormap suggestions")
+```
+
+
+
+
+```{r }
+#install.packages('extraDistr')
+library(extraDistr)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
+ggplot(data.frame(x = c(0, 200)), aes(x)) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=40), aes(color = "b"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=80), aes(color = "c"), size = 0.5)+
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100), aes(color = "d"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=200), aes(color = "e"), size = 0.5)+
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=500), aes(color = "f"), size = 0.5)+
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=1000), aes(color = "g"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10000), aes(color = "h"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100000), aes(color = "i"), size = 0.5)+
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=1e-04), aes(color = "j"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.001), aes(color = "k"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.1), aes(color = "l"), size = 0.5)+
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_color_discrete(name = "",
+                       labels = c("a" = expression(~ tau == 10),
+                                  "b" = expression(~ tau == 40),
+                                  "c" = expression(~ tau == 80),
+                                  "d" = expression(~ tau == 100),
+                                  "e" = expression(~ tau == 200),
+                                  "f" = expression(~ tau == 500),
+                                 "g" = expression(~ tau == 1000),
+                                 "h" = expression(~ tau == 10000),
+                                 "i" = expression(~ tau == 100000),
+                                 "j"=expression(~ tau==1e-04),
+                                 "k"=expression(~ tau==0.001),
+                                 "l"=expression(~ tau==0.1))
+              ) +
+                             ylab("Probability")+xlab("Value") +
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+
+
+ggplot(data.frame(x = c(0, 200)), aes(x)) +
+    stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=0.1), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10), aes(color = "a"), size = 0.5) +
+  stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=100), aes(color = "b"), size = 0.5) +
+   stat_function(fun = dlaplace, n = 1e3, args = list(mu = 0,sigma=10000), aes(color = "c"), size = 0.5)+
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_color_discrete(name = "",
+                       labels = c("a"=expression(~ tau == 0.1),
+                         "a" = expression(~ tau == 10),
+                                 "b" = expression(~ tau == 100),
+                                 "c" = expression(~ tau == 10000))) +
+                             ylab("Probability")+xlab("Value") +
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+ theme(legend.position = "bottom")
+
+
+```
+
+
+```{r,fig.width=7,fig.height=4}
+#load data
+
+#load("/Users/muyang/Desktop/cylinders_data.RData")
+#load("data.Rdata")
+
+ggplot(melt(Y), aes(x=Var2, y=Var2,fill=value)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_rect(fill="white",colour="black"),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank(),panel.grid = element_blank())
+ # just(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),                                    plot.title=element_text(size=11))+coord_flip(ylim = c(0,60))+theme(panel.background = element_blank())
+
+
+ggplot(melt(X), aes(x=Var2, y=Var1,fill=value)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))
+ # just(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),                                    plot.title=element_text(size=11))+coord_flip(ylim = c(0,60))+theme(panel.background = element_blank())
+
+
+#for gaussian 
+
+melt.function<-function(x){
+   select(melt(get(paste0("x.meang",x))),value)
+}
+
+Var1<-melt(x.meang0.1)$X1
+Var2<-melt(x.meang0.1)$X2
+t.g<-lapply(sigma, melt.function)
+
+t.g<-data.frame(t.g)
+head(t.g)
+
+t.g<-t.g%>%
+mutate(.,Var1)%>%
+  mutate(.,Var2)%>%
+  melt(.,id.vars=c("Var1","Var2"))%>%
+  mutate(parameter=(case_when( variable=="value" ~ 0.0001,
+                    variable=="value.1" ~ 0.01,
+                      variable=="value.2" ~ 0.1,
+                   variable=="value.3" ~ 10,
+                    variable=="value.4" ~ 40,
+                      variable=="value.5" ~ 80,
+variable=="value.6" ~ 100,
+variable=="value.7" ~ 200,
+variable=="value.8" ~ 500,
+variable=="value.9" ~ 700,
+variable=="value.10" ~ 1000,
+variable=="value.11" ~ 1500,
+variable=="value.12" ~ 2000,
+variable=="value.13" ~ 2500,
+variable=="value.14" ~ 1e+4,
+variable=="value.15" ~ 1e+5,
+variable=="value.16" ~ 1e+6)
+))
+rm(t.g)
+
+t.g<-t.g%>%
+mutate(.,Var1)%>%
+  mutate(.,Var2)%>%
+  melt(.,id.vars=c("Var1","Var2"))%>%
+  mutate(parameter=(case_when( variable=="value" ~ 0.1,
+                    variable=="value.1" ~ 0.2,
+                      variable=="value.2" ~ 0.3,
+                   variable=="value.3" ~ 0.4,
+                    variable=="value.4" ~ 0.5,
+                      variable=="value.5" ~ 0.6,
+variable=="value.6" ~ 0.7,
+variable=="value.7" ~ 0.8,
+variable=="value.8" ~ 0.9)
+))
+
+gg.g<-t.g%>%  
+ group_by(variable)%>%
+  ggplot(., aes(x=Var1, y=Var2,fill=value,frame=parameter)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))
+
+
+
+ggplotly(gg.g)
+ # theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),
+ #                                       plot.title=element_text(size=11))
+
+#######################laplace
+
+
+melt.function<-function(x){
+   select(melt(get(paste0("x.mean.l",x))),value)
+}
+
+Var2<-melt(x.mean.l10)$X2
+Var1<-melt(x.mean.l10)$X1
+t.l<-lapply(listsig, melt.function)
+
+t.l<-data.frame(t.l)
+
+t.l<-t.l%>%
+mutate(Var2)%>%
+  mutate(Var2)%>%
+  melt(.,id.vars=c("Var2","Var2"))%>%
+  mutate(parameter=(case_when(
+       variable=="value" ~ 1e-04,
+                    variable=="value.1" ~ 0.001,
+                      variable=="value.2" ~ 0.01,
+    variable=="value.3" ~ 10,
+                    variable=="value.4" ~ 40,
+                      variable=="value.5" ~ 80,
+variable=="value.6" ~ 100,
+variable=="value.7" ~ 200,
+variable=="value.8" ~ 500,
+variable=="value.9" ~ 700,
+variable=="value.10" ~ 1000,
+variable=="value.11" ~ 1500,
+variable=="value.12" ~ 2000,
+variable=="value.13" ~ 2500,
+variable=="value.14" ~ 1e+4,
+variable=="value.15" ~ 1e+5,
+variable=="value.16" ~ 1e+6)
+))
+
+
+gg.l<-t.l%>%  
+  group_by(variable)%>%
+  ggplot(., aes(x=Var2, y=Var2,fill=value,frame=parameter)) + 
+ geom_raster(aes(fill=value,group=parameter)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))
+
+
+element_rect(fill="white",colour="black")
+
+ggplotly(gg.l)
+ # theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),
+ #                                       plot.title=element_text(size=11))
+
+
+############################################
+
+##########uniform  proportion to inverse variance 
+listsig<-c(listsig,0.1,0.001,1e-04,0.1,10,100,1000,10000,1e+05,1e+06)
+ls()
+melt.function<-function(x){x
+   select(melt(get(paste0("x.mean.u",x))),value)
+}
+
+Var2<-melt(x.mean.u10)$Var1
+Var2<-melt(x.mean.u10)$Var2
+t.u<-lapply(listsig.u, melt.function)
+
+t.u<-data.frame(t.u)
+
+
+t.u<-t.u%>%
+  mutate(Var2)%>%
+  mutate(Var2)%>%
+  melt(.,id.vars=c("Var2","Var2"))%>%
+  mutate(parameter=(case_when(variable=="value" ~ 1e-04,
+                    variable=="value.1" ~ 0.1,
+                      variable=="value.2" ~ 10,
+variable=="value.3" ~ 100,
+variable=="value.4" ~ 1000,
+variable=="value.5" ~ 10000,
+variable=="value.6" ~ 1e+05,
+variable=="value.7" ~ 1e+06,
+)))
+
+gg.u<-t.u%>%  
+  group_by(variable)%>%
+  ggplot(., aes(x=Var2, y=Var2,fill=value,frame=parameter)) + 
+ geom_raster(aes(fill=value,group=parameter)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))
+
+ggplotly(gg.u)
+ # theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),
+ #                                       plot.title=element_text(size=11))
+
+
+##############uniform prior
+
+listsig.u<-c(1e-04,0.1,10,100,1000,10000,1e+05,1e+06)
+melt.function<-function(x){x
+   select(melt(get(paste0("x.mean.u",x))),value)
+}
+
+Var2<-melt(x.mean.u10)$Var1
+Var2<-melt(x.mean.u10)$Var2
+t.u<-lapply(listsig.u, melt.function)
+
+t.u<-data.frame(t.u)
+
+
+t.u<-t.u%>%
+mutate(Var1)%>%
+  mutate(Var2)%>%
+  melt(.,id.vars=c("Var2","Var2"))%>%
+  mutate(parameter=(case_when(variable=="value" ~ 1e-04,
+                    variable=="value.1" ~ 0.1,
+                      variable=="value.2" ~ 10,
+variable=="value.3" ~ 100,
+variable=="value.4" ~ 1000,
+variable=="value.5" ~ 10000,
+variable=="value.6" ~ 1e+05,
+variable=="value.7" ~ 1e+06,
+)))
+
+gg.u<-t.u%>%  
+  group_by(variable)%>%
+  ggplot(., aes(x=Var2, y=Var1,fill=value,frame=parameter)) + 
+ geom_raster(aes(fill=value,group=parameter)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background =element_rect(fill="white",colour="black"),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))
+
+ggplotly(gg.u)
+ # theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+ #                                          axis.text.y=element_text(size=9),
+ #                                       plot.title=element_text(size=11))
+
+
+
+
+
+#gaussian vs laplace
+
+#combine together
+t.gl<-merge(t.g,t.l, by=c("Var2","Var2","variable","parameter"))%>%
+  melt(.,id.vars=c(c("Var2","Var2","variable","parameter")))
+
+
+ 
+prior.labs <- c("Gaussian prior", "Laplace prior")
+names(prior.labs)<-c("Gaussian prior", "Laplace prior")
+
+t.gl<-rename(t.gl,"Variable"="variable")
+t.gl$variable<-factor(t.gl$variable, labels = c("Gaussian prior","Laplace prior"))
+
+gg.gl<-t.gl%>%
+  group_by(Variable)%>%
+  ggplot(., aes(x=X2, y=X1,fill=value,frame=parameter)) + 
+ geom_raster(aes(fill=value,group=parameter)) + 
+  scale_fill_gradient(low="white", high="black",limits=c(0,1450)) +
+  labs(x="", y="", title="") +
+  labs(fill="Intensity")+theme(legend.position = "bottom")+
+ theme(panel.background = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),axis.title = element_blank())+coord_flip(ylim=c(0,60))+facet_wrap(. ~ variable)
+
+
+ggplotly(gg.gl)
+
+#comparison between Gaussian and Laplace 
+```
+
+## Image Description
+
+Bascially, we cannot receive the true image in reality, se MSE is not realiable in most cases.We need to find some other methods as alternative. From the plot, we can see as the increased value of $\sigma_x$, the RSS is decreased, after the eleventh point ($sigma_x=2500$) the first gradient of RSS become smaller. MSS seems achieve the local minimum at the third point($sigma_x=100$). How to balance the information.
+Bias
+Variance
+
+
+#SD
+
+```{r include=True}
+
+#if we choose the 
+#choose some ROI to analysis, mean of sd , mean of error, bias, variance
+
+mean_array.g<-array(0,dim=c(m1,m2,length(sigma)))
+sd_array.g<-array(0,dim =c(m1,m2,(length(sigma))))
+for (i in 1:length(sigma)){
+  sigma.x<-sigma[i]
+  mean_array.g[,,i]<-get(paste0("x.meang",sigma.x))
+  sd_array.g[,,i]<-get(paste0("x.sd.g",sigma.x))
+}
+# global
+totalrigionsd.g<-apply(sd_array.g, 3, mean)
+#be careful for dimensions 
+sdframerigion1.g<-apply(sd_array.g[c(11:17),34,],2,mean)
+sdframerigion2.g<-apply(sd_array.g[8,c(37:43),],2,mean)
+sdframerigion3.g<-apply(sd_array.g[c(13:15),c(35:37),],3,mean)
+sdframerigion4.g<-apply(sd_array.g[c(19:21),c(13:15),],3,mean)
+sdframerigion5.g<-apply(rbind(sd_array.g[c(21:23),26,],sd_array.g[22,c(25,27),]),2,mean)
+
+library(reshape2)
+library(scales)
+plot(totalrigionsd.g)
+regionsdframe.g<-data.frame(sdframerigion1.g,sdframerigion2.g,sdframerigion3.g,sdframerigion4.g,sdframerigion5.g,sigma)%>%
+  melt(.,id.vars=c("sigma"), measure.vars = c("sdframerigion1.g","sdframerigion2.g","sdframerigion3.g","sdframerigion4.g","sdframerigion5.g"))
+
+regionsdframe.g%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=sigma,y=value,color=variable))+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  geom_point(aes(color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("black","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title=" ", color="Regions", x=expression(paste(tau)),y="SD")+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+#Laplace distribution
+
+
+#if we choose the 
+#choose some ROI to analysis, mean of sd , mean of error, bias, variance
+mean_array.l<-array(0,dim =c(m1,m2,(length(sigma))))
+sd_array.l<-array(0,dim =c(m1,m2,(length(sigma))))
+
+for (i in 1:length(sigma)){
+  sigma.x<-sigma[i]
+  mean_array.l[,,i]<-get(paste0("x.mean.l",sigma.x))
+  sd_array.l[,,i]<-get(paste0("x.sd.l",sigma.x))
+}
+# global
+totalrigionsd.l<-apply(sd_array.l, 3, mean)
+#be careful for dimensions 
+sdframerigion1.l<-apply(sd_array.l[c(11:17),34,],2,mean)
+sdframerigion2.l<-apply(sd_array.l[8,c(37:43),],2,mean)
+sdframerigion3.l<-apply(sd_array.l[c(13:15),c(35:37),],3,mean)
+sdframerigion4.l<-apply(sd_array.l[c(19:21),c(13:15),],3,mean)
+sdframerigion5.l<-apply(rbind(sd_array.l[c(21:23),26,],sd_array.l[22,c(25,27),]),2,mean)
+
+
+
+regionsdframe.l<-data.frame(sdframerigion1.l,sdframerigion2.l,sdframerigion3.l,sdframerigion4.l,sdframerigion5.l,sigma)%>%
+  melt(.,id.vars=c("sigma"), measure.vars = c("sdframerigion1.l","sdframerigion2.l","sdframerigion3.l","sdframerigion4.l","sdframerigion5.l"))
+
+regionsdframe.l%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=sigma,y=value,color=variable))+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  geom_point(aes(color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("black","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title=" ", color="Regions", x=expression(paste(tau)),y="SD")+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+#Gaussian vs Laplace
+#region
+region.sd.g.l<-cbind(regionsdframe.g,regionsdframe.l[,3])%>%
+    mutate(.,"Region"=factor(variable,labels=c("Region1","Region2","Region3","Region4","Region5")))
+
+library(tidyverse)
+head(region.sd.g.l)
+ region.sd.g.l.new<-region.sd.g.l[,-2]%>%
+  rename("Laplace"="regionsdframe.l[, 3]","Gaussian"="value")%>%
+  melt(.,id.vars=c("sigma","Region"))%>%
+  rename("Distribution"="variable")
+
+region.sd.g.l.new%>%
+    ggplot(.,aes(x=sigma,y=value,color=Distribution))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point()+geom_line()+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_color_manual("Distribution",values=c("black","steelblue"),labels=c("Gaussian","Laplace")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="SD")+facet_wrap( ~Region)
+
+
+
+#total global comparison
+total.frame.sd<-data.frame(totalrigionsd.g,totalrigionsd.l,sigma)%>%
+  melt(.,id.vars="sigma")
+
+total.frame.sd%>%
+  group_by(variable)%>%
+  ggplot(.,aes(x=sigma,y=value,colour=variable))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+ # geom_hline(yintercept=8.073320,color="red")+
+scale_color_manual("Distribution",values=c("black","steelblue"),labels=c("Gaussian","Laplace","Uniform")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="SD")
+              
+
+######################### ############# proportion to variance parameter 
+listsig.u<-c(0.0001,0.1,10,100,1000,10000,1e+05,1e+06)
+mean_array.u<-array(0,dim=c(m1,m2,length(listsig.u)))
+sd_array.u<-array(0,dim =c(m1,m2,(length(listsig.u))))
+for (i in 1:length(listsig.u)){
+  sigma.x<-listsig.u[i]
+  mean_array.u[,,i]<-get(paste0("x.mean.u",sigma.x))
+  sd_array.u[,,i]<-get(paste0("x.sd.u.",sigma.x))
+}
+
+
+# global
+totalrigionsd.u<-apply(sd_array.u, 3, mean)
+#be careful for dimensions 
+sdframerigion1.u<-apply(sd_array.u[c(11:17),34,],2,mean)
+sdframerigion2.u<-apply(sd_array.u[8,c(37:43),],2,mean)
+sdframerigion3.u<-apply(sd_array.u[c(13:15),c(35:37),],3,mean)
+sdframerigion4.u<-apply(sd_array.u[c(19:21),c(13:15),],3,mean)
+sdframerigion5.u<-apply(rbind(sd_array.u[c(21:23),26,],sd_array.uni.i[22,c(25,27),]),2,mean)
+
+# library(reshape2)
+# library(scales)
+
+regionsdframe.u<-data.frame(sdframerigion1.u,sdframerigion2.u,sdframerigion3.u,sdframerigion4.u,sdframerigion5.u,listsig.u)%>%
+  melt(.,id.vars=c("listsig.u"), measure.vars = c("sdframerigion1.u","sdframerigion2.u","sdframerigion3.u","sdframerigion4.u","sdframerigion5.u"))
+
+regionsdframe.u%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig.u,y=value,color=variable))+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.uni.grid.major = element_blank(),panel.uni.grid.minor = element_blank())+
+  geom_point(aes(color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("black","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title=" ", color="Regions", x=expression(paste(tau)),y="SD")+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+
+
+
+totalrigionsd.l<-cbind(listsig,value=totalrigionsd.l)%>%
+  as.data.frame(.)
+totalrigionsd.l.plot<-
+ggplot(totalrigionsd.l,aes(x=listsig,y=value))+geom_point()+geom_line()+
+labs(title="",x=expression(paste(tau)),y="SD") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  # scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+#####
+totalrigionsd.uni.cos
+totalrigionsd.g
+totalrigionsd.l
+totalrigionsd.u
+```
+
+
+#bias
+
+The bias of an estimator $H$ is the expected value of the esimator less than the value $\theta$ bing estimated:
+
+```{r pressure, echo=TRUE}
+############################gaussian
+################bias
+
+bias_abs_array.g<-array(0,dim=c(m1,m2,length(sigma)))
+bias_abs_array.g<-abs(sweep(mean_array.g,c(1,2),X,"-"))
+str(bias_abs_array.g)
+totalrigionbias.g<-apply(bias_abs_array.g,3,mean)
+bias_abs_rigion1.g<-apply(bias_abs_array.g[c(11:17),34,],2,mean)
+bias_abs_rigion2.g<-apply(bias_abs_array.g[8,c(37:43),],2,mean)
+bias_abs_rigion3.g<-apply(bias_abs_array.g[c(13:15),c(35:37),],3,mean)
+bias_abs_rigion4.g<-apply(bias_abs_array.g[c(19:21),c(13:15),],3,mean)
+bias_abs_rigion5.g<-apply(rbind(bias_abs_array.g[c(21:23),26,],bias_abs_array.g[22,c(25,27),]),2,mean)
+
+plot(totalrigionbias.g)
+regionbiasframe.g<-data.frame(bias_abs_rigion1.g,bias_abs_rigion2.g,bias_abs_rigion3.g,bias_abs_rigion4.g,bias_abs_rigion5.g,listsig)%>% 
+  melt(.,id.vars=c("listsig"),measure.vars=c("bias_abs_rigion1.g","bias_abs_rigion2.g","bias_abs_rigion3.g","bias_abs_rigion4.g","bias_abs_rigion5.g"))
+
+totalrigionbias.g<-cbind(listsig,value=totalrigionbias.g)%>%
+  as.data.frame(.)
+totalrigionbias.g%>%
+  # subset(.,listsig>0.1)%>%
+ggplot(.,aes(x=listsig,y=value))+geom_point()+geom_line()+
+labs(title="",x=expression(paste(tau)),y="|Bias|") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+regionbiasframe.g%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig,y=value,color=variable))+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("grey","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title="", color="Regions", x=expression(paste(tau)),y="|Bias|") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+
+############################Laplace
+
+###########bias
+ 
+bias_abs_array.l<-array(0,dim=c(m1,m2,length(listsig)))
+bias_abs_array.l<-abs(sweep(mean_array.l,c(1,2),X,"-"))
+
+totalrigionbias.l<-apply(bias_abs_array.l,3,mean)
+bias_abs_rigion1.l<-apply(bias_abs_array.l[c(11:17),34,],2,mean)
+bias_abs_rigion2.l<-apply(bias_abs_array.l[8,c(37:43),],2,mean)
+bias_abs_rigion3.l<-apply(bias_abs_array.l[c(13:15),c(35:37),],3,mean)
+bias_abs_rigion4.l<-apply(bias_abs_array.l[c(19:21),c(13:15),],3,mean)
+bias_abs_rigion5.l<-apply(rbind(bias_abs_array.l[c(21:23),26,],bias_abs_array.l[22,c(25,27),]),2,mean)
+
+totalrigionbias.l<-cbind(listsig,value=totalrigionbias.l)%>%
+  as.data.frame(.)
+totalrigionbias.l.plot<-
+ggplot(totalrigionbias.l,aes(x=listsig,y=value))+geom_point()+geom_line()+
+labs(title="",x=expression(paste(tau)),y="|Bias|") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+regionbiasframe.l<-data.frame(bias_abs_rigion1.l,bias_abs_rigion2.l,bias_abs_rigion3.l,bias_abs_rigion4.l,bias_abs_rigion5.l,listsig)%>% 
+  melt(.,id.vars=c("listsig"),measure.vars=c("bias_abs_rigion1.l","bias_abs_rigion2.l","bias_abs_rigion3.l","bias_abs_rigion4.l","bias_abs_rigion5.l"))
+grid.arrange(totalrigionbias.l.plot,totalrigionsd.l.plot,nrow=1)
+
+regionbiasframe.l%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig,y=value,color=variable))+
+  geom_point(aes(color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("grey","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title="", color="Regions", x=expression(paste(tau)),y="|Bias|") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+    theme(legend.position = "bottom")
+
+
+
+######################Laplace vs Gaussian 
+########################region 
+region.bias.g.l<-cbind(regionbiasframe.g,regionbiasframe.l[,3])%>%
+    mutate(.,"Region"=factor(variable,labels=c("Region1","Region2","Region3","Region4","Region5")))%>%
+  select(.,-"variable")%>%
+  rename("Laplace"="regionbiasframe.l[, 3]","Gaussian"="value")%>%
+  melt(.,id.vars=c("listsig","Region"))%>%
+  rename("Distribution"="variable")
+
+
+region.bias.g.l%>%
+    ggplot(.,aes(x=listsig,y=value,color=Distribution))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point()+geom_line()+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_color_manual("Distribution",values=c("black","steelblue"),labels=c("Gaussian","Laplace")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="|Bias|")+facet_wrap( ~Region)
+
+
+####################################total global comparison
+total.frame.bias<-data.frame(totalrigionbias.g,totalrigionbias.l,listsig)%>%
+  melt(.,id.vars="listsig")
+
+head(total.frame.bias)
+total.frame.bias%>%
+  group_by(variable)%>%
+  ggplot(.,aes(x=listsig,y=value,colour=variable))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+geom_hline(yintercept =7.910083,col="red" )+
+scale_color_manual("Distribution",values=c("black","steelblue"),labels=c("Gaussian","Laplace")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="|Bias|")
+mean(totalrigionbias.u)
+############## uniform variance 
+ 
+bias_abs_array.u<-array(0,dim=c(m1,m2,length(listsig.u)))
+X<-X.u+1
+bias_abs_array.u<-abs(sweep(mean_array.u,c(1,2),X,"-"))
+
+totalrigionbias.u<-apply(bias_abs_array.u,3,mean)
+bias_abs_rigion1.u<-apply(bias_abs_array.u[c(11:17),34,],2,mean)
+bias_abs_rigion2.u<-apply(bias_abs_array.u[8,c(37:43),],2,mean)
+bias_abs_rigion3.u<-apply(bias_abs_array.u[c(13:15),c(35:37),],3,mean)
+bias_abs_rigion4.u<-apply(bias_abs_array.u[c(19:21),c(13:15),],3,mean)
+bias_abs_rigion5.u<-apply(rbind(bias_abs_array.u[c(21:23),26,],bias_abs_array.u[22,c(25,27),]),2,mean)
+
+
+regionbiasframe.u<-data.frame(bias_abs_rigion1.u,bias_abs_rigion2.u,bias_abs_rigion3.u,bias_abs_rigion4.u,bias_abs_rigion5.u,listsig.u)%>% 
+  melt(.,id.vars=c("listsig.u"),measure.vars=c("bias_abs_rigion1.u","bias_abs_rigion2.u","bias_abs_rigion3.u","bias_abs_rigion4.u","bias_abs_rigion5.u"))
+
+
+regionbiasframe.u%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig.u,y=value,color=variable))+
+  geom_point(aes(color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Region",values=c("grey","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  labs(title="", color="Regions", x=expression(paste(tau)),y="|Bias|") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+    theme(legend.position = "bottom")
+
+
+####bias three distribution
+
+
+total.frame.bias%>%
+  group_by(variable)%>%
+  ggplot(.,aes(x=listsig,y=value,colour=variable))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+geom_hline(yintercept = 7.915,col="red")+
+scale_color_manual("Distribution",values=c("black","steelblue"),labels=c("Gaussian","Laplace")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="|Bias|")
+
+
+```
+
+
+#mse
+
+```{r pressure, echo=TRUE}
+library(extraDistr)
+library(reshape)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
+#library(scales) # to access break formatting functions
+library(dplyr)
+#££#Gaussian
+#listsig<-c(0.0001,0.001,10,40,80,100,200,700,1000,1500,2000,2500,10000,100000,1000000)
+
+m1=29
+m2=58
+MSE_array.g<-array(0,dim=c(m1,m2,length(sigma)))
+
+
+for (i in 1:length(sigma)){
+  sigma.x<-sigma[i]
+  xstore.g.sample<-get(paste0("xstore.g",sigma.x))[,,(nburn+1):(nburn+iteration)]
+  MSE_array.g[,,i]<-apply((sweep(xstore.g.sample,c(1,2),X,"-")^2),c(1,2),mean)
+}
+
+
+MSE_array_region.g<-apply(MSE_array.g,3,mean)
+MSE_array_region1.g<-apply(MSE_array.g[c(11:17),34,],2,mean)
+MSE_array_region2.g<-apply(MSE_array.g[8,c(37:43),],2,mean)
+MSE_array_region3.g<-apply(MSE_array.g[c(13:15),c(35:37),],3,mean)
+MSE_array_region4.g<-apply(MSE_array.g[c(19:21),c(13:15),],3,mean)
+MSE_array_region5.g<-apply(MSE_array.g[c(6,7),c(10:13),],3,mean)
+MSE_array_region6.g<-apply(MSE_array.g[c(13,14),c(26:29),],3,mean)
+MSE_array_region7.g<-apply(MSE_array.g[c(18:22),c(11,5),],3,mean)
+MSE_array_region8.g<-apply(MSE_array.g[7,c(37:43),],2,mean)
+MSE_array_region.g<-cbind(sigma,value=MSE_array_region.g)%>%
+  as.data.frame(.)
+
+MSE_array_region.g%>%
+  # subset(.,listsig>0.1)%>%
+ggplot(.,aes(x=sigma,y=value))+geom_point()+geom_line()+
+labs(title="",x=expression(paste(tau)),y="MSE") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")
+
+
+regionsframe.mse.g<-data.frame(MSE_array_region.g$value,MSE_array_region1.g,MSE_array_region2.g,MSE_array_region3.g,MSE_array_region4.g,MSE_array_region5.g,MSE_array_region6.g,MSE_array_region7.g,MSE_array_region8.g,listsig)%>%
+  melt(.,id.vars="listsig")
+levels(regionsframe.mse.g$variable)
+regionsframe.mse.g$variable<-factor(regionsframe.mse.g$variable,levels=c("MSE_array_region.g.value","MSE_array_region1.g","MSE_array_region2.g","MSE_array_region3.g","MSE_array_region4.g","MSE_array_region5.g","MSE_array_region6.g","MSE_array_region7.g","MSE_array_region8.g"),labels=c("Global","Region1","Region2","Region3","Region4","Region5","Region6","Region7","Region8"))
+regionsframe.mse.g%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig,y=value))+facet_wrap(.~variable)+
+  geom_point()+
+  geom_line()+
+  #geom_point(aes(color=factor(variable)))+
+  #geom_line(aes(color=factor(variable)))+
+  #scale_color_manual("Region",values=c("black","red","steelblue","brown","green","orange","blue","yellow","darkgray"),labels=c("Global","Region1","Region2","Region3","Region4","Region5","Region6","Region7","Region8"))
+  labs(title="", color="Regions", x=expression(paste(tau)),y="MSE")+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 15) +
+    theme(legend.position = "")+theme(title = element_text(size =15),axis.text = element_text(size=15),strip.text = element_text(size=15)) +
+  theme(panel.background =element_rect(fill="white",colour="black"),panel.grid.major = element_blank()) +theme(strip.background =element_rect(fill="white"))
+                                                               
+  
+
+################laplace
+#listsig<-c(1,0.1,0.01,0.001,0.0001,0.00001)
+m1<-29
+m2<-58
+nburn=1000
+iteration=2000
+MSE_array.l<-array(0,dim=c(m1,m2,length(listsig)))
+##don't need to run again
+for (i in 1:length(listsig)){
+  sigma.x<-listsig[i]
+   xstore.l.sample<-get(paste0("xstore.l",sigma.x))[,,(nburn+1):(nburn+iteration)]
+  MSE_array.l[,,i]<-apply(sweep(xstore.l.sample,c(1,2),X,"-")^2,c(1,2),mean)
+}
+
+MSE_array_region.l<-apply(MSE_array.l,3,mean)
+MSE_array_region1.l<-apply(MSE_array.l[c(11:17),34,],2,mean)
+MSE_array_region2.l<-apply(MSE_array.l[8,c(37:43),],2,mean)
+MSE_array_region3.l<-apply(MSE_array.l[c(13:15),c(35:37),],3,mean)
+MSE_array_region4.l<-apply(MSE_array.l[c(19:21),c(13:15),],3,mean)
+MSE_array_region5.l<-apply(MSE_array.l[c(6,7),c(10:13),],3,mean)
+MSE_array_region6.l<-apply(MSE_array.l[c(13,14),c(26:29),],3,mean)
+MSE_array_region7.l<-apply(MSE_array.l[c(18:22),c(11,5),],3,mean)
+MSE_array_region8.l<-apply(MSE_array.l[7,c(37:43),],2,mean)
+
+
+
+regionsframe.mse.l<-data.frame(MSE_array_region.l,MSE_array_region1.l,MSE_array_region2.l,MSE_array_region3.l,MSE_array_region4.l,MSE_array_region5.l,MSE_array_region6.l,MSE_array_region7.l,MSE_array_region8.l,listsig)%>%
+  melt(.,id.vars="listsig")
+
+levels(regionsframe.mse.l$variable)
+regionsframe.mse.l$variable<-factor(regionsframe.mse.l$variable,levels=c("MSE_array_region.l","MSE_array_region1.l","MSE_array_region2.l","MSE_array_region3.l","MSE_array_region4.l","MSE_array_region5.l","MSE_array_region6.l","MSE_array_region7.l","MSE_array_region8.l"),labels=c("Global","Region1","Region2","Region3","Region4","Region5","Region6","Region7","Region8"))
+
+regionsframe.mse.l%>%
+  group_by(variable)%>%
+ggplot(.,aes(x=listsig,y=value))+
+  facet_wrap(.~variable)+
+  geom_point()+
+  geom_line()+
+  #geom_point(aes(color=factor(variable)))+
+  #geom_line(aes(color=factor(variable)))+
+  #scale_color_manual("Region",values=c("black","red","steelblue","brown","green","orange","blue","yellow","darkgray"),labels=c("Global","Region1","Region2","Region3","Region4","Region5","Region6","Region7","Region8"))
+  labs(title="", color="Regions", x=expression(paste(tau)),y="MSE")+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 15) +
+    theme(legend.position = "")+theme(title = element_text(size =15),axis.text = element_text(size=15),strip.text = element_text(size=15)) +
+  theme(panel.background =element_rect(fill="white",colour="black"),panel.grid.major = element_blank()) +theme(strip.background =element_rect(fill="white"))
+
+
+MSE_array_region.l<-cbind(listsig,value=MSE_array_region.l)%>%
+  as.data.frame(.)
+MSE_array_region.l.plot<-
+  # subset(.,listsig>0.1)%>%
+ggplot(MSE_array_region.l,aes(x=listsig,y=value))+geom_point()+geom_line()+
+labs(title="",x=expression(paste(tau)),y="MSE") +
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "Right")
+
+grid.arrange(MSE_array_region.l.plot,regionsframe.mse.l.plot,nrow=1,widths=c(1.47,2))
+########l#####Laplace and Gaussian
+total.frame.mse<-merge(MSE_array_region.g,MSE_array_region.l,by="listsig")%>%
+  melt(.,id.vars="listsig")
+#remove the very small value
+total.frame.mse.plot<-
+total.frame.mse%>%
+  group_by(variable)%>%
+  ggplot(.,aes(x=listsig,y=value,colour=variable))+
+ theme_bw(base_size = 14)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+ # geom_hline(yintercept=753.1508,col="black")+
+scale_color_manual("Distribution",values=c("green","darkblue"),labels=c("Gaussian","Laplace")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="MSE")
+########################
+region.mse.g.l<-
+  data.frame(Gaussian=regionsframe.mse.g[,3],Laplace=regionsframe.mse.l[,3],Region=factor(regionsframe.mse.l$variable,labels=c("Global","Region1","Region2","Region3","Region4","Region5","Region6","Region7","Region8")),listsig)
+
+ region.mse.g.l<- melt(region.mse.g.l,id.vars=c("listsig","Region"))
+
+region.mse.g.l%>%
+    ggplot(.,aes(x=listsig,y=value,color=variable))+
+ theme_bw(base_size = 15)+
+  theme(panel.grid.major = element_blank())+theme(legend.position = "bottom")+geom_point()+geom_line()+
+  scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_color_manual("Distribution",values=c("black","red"),labels=c("G","L")) +
+  labs(title=" ", color="Distribution", x=expression(paste(tau)),y="MSE")+
+  facet_wrap(vars(Region), nrow = 3, strip.position = "top")+theme(strip.background = element_blank())+
+      theme(axis.text.x = element_text(size = 20),axis.text.y = element_text(size = 15), axis.title.x =element_text(size=22),axis.title.y=element_text(size=15))+
+   theme(legend.position = "bottom", legend.text = element_text(size=12),panel.border=element_rect(size=1.5))
+
+
+s1<-grid.arrange(g.l.10,g.l.100,g.l.1000,g.l.10000)
+grid.arrange(total.frame.mse.plot,s1,widths=c(1.5,2))
+########################### double check MSE value (regions), only take one prior distribution into consideration
+
+comparison<-cbind(total.frame.mse$value, total.frame.bias$value+total.frame.sd$value,total.frame.sd$listsig)
+
+data.sample.mse%>%
+  group_by(V1)%>%
+  ggplot(. ,aes(x=V3,y=V2,color=factor(V1)))+
+  geom_line()+
+  geom_point()+
+scale_color_manual("Region",values=c("grey","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  
+  labs(title="", color="Region", x=expression(paste(tau)),y="MSE")+
+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+# global 
+data.sample.mse<-cbind (totalrigionbias^2+totalrigionse^2,regionsdframe$listsig)%>%
+  as.data.frame()
+
+data.sample.mse%>%
+  ggplot(.,aes(x=V2,y=V1))+geom_line()+
+  geom_point()+
+  labs(title="", color="Region", x=expression(paste(tau)),y="MSE")+
+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  geom_text(aes(label=listsig),hjust=0.2, vjust=1.5,color ="black",position =position_dodge(0.9))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+
+ggplot(dataframe.melt,aes(x=listsig,y=value,color=variable))+geom_point(aes(color=factor(variable)))+geom_line(aes(color=factor(variable)))+
+   scale_color_manual("Measurements",values=c("black","steelblue"),labels=c("Log(SD)","Log(Bias)"))+  labs(title="", color="Regions", x=expression(paste(tau)),y="Values") +theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+theme(legend.position = "bottom")+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14)+
+expand_limits(y=c(1,3))
+
+
+```
+
+```{r}
+###RSS
+
+RSS_array<-array(0,dim=c(m1,m2,length(listsig)))
+
+for (i in 1:length(listsig)){
+  sigma.x<-listsig[i]
+  RSS_array[,,i]<-apply((sweep(get(paste0("mustore.",sigma.x)),c(1,2),Y.g,"-")^2)[,,c(nburn:(nburn+iteration))],c(1,2),sum)
+}
+
+RSS_array_rigion<-apply(RSS_array,3,mean)
+RSS_array_rigion1<-apply(RSS_array[c(11:17),34,],2,mean)
+RSS_array_rigion2<-apply(RSS_array[8,c(37:43),],2,mean)
+RSS_array_rigion3<-apply(RSS_array[c(13:15),c(35:37),],3,mean)
+RSS_array_rigion4<-apply(RSS_array[c(19:21),c(13:15),],3,mean)
+RSS_array_rigion5<-apply(rbind(RSS_array[c(21:23),26,],RSS_array[22,c(25,27),]),2,mean)
+
+
+regionsframe.rss<-data.frame(rssrigion1,rssrigion2,rssrigion3,rssrigion4,rssrigion5,listrig)%>%
+  melt(.,id.vars="listsig")
+
+regionsframe.rss%>%
+  group_by(variable)%>%
+  ggplot(. ,aes(x=listsig,y=value,color=factor(variable)))+
+  geom_line(aes(color=factor(variable)))+
+  geom_point(aes(color=factor(variable)))+
+scale_color_manual("Region",values=c("grey","steelblue","red","green","yellow"),labels=c("region1","region2","region3","region4","region5"))+  
+  labs(title="", color="Region", x=expression(paste(tau)),y="MSE")+
+scale_x_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+scale_y_log10(breaks=trans_breaks("log10",function(x) 10^x),labels=trans_format("log10",math_format(10^.x)))+
+  theme_bw(base_size = 14) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+#95% credit interval if we choose a row of pixel into consideration, for example, the row 18th.
+
+```{r pressure, echo=TRUE}
+
+#add line
+line=20
+lower.g<-matrix(nrow=m2,ncol=17)
+lower.l<-matrix(nrow=m2,ncol=17)
+upper.g<-matrix(nrow=m2,ncol=17)
+upper.l<-matrix(nrow=m2,ncol=17)
+mean.l<-matrix(nrow=m2,ncol=17)
+mean.g<-matrix(nrow=m2,ncol=17)
+lower.u<-matrix(nrow=m2,ncol=17)
+upper.u<-matrix(nrow=m2,ncol=17)
+mean.u<-matrix(nrow=m2,ncol=17)
+
+for(i in 1:14){
+  sigma.x<-listsig[i]
+  lower.g[,i]<-get(paste0("x.lcig",sigma.x))[line,]
+  lower.l[,i]<-get(paste0("x.lci.l",sigma.x))[line,]
+  upper.g[,i]<-get(paste0("x.ucig",sigma.x))[line,]
+  upper.l[,i]<-get(paste0("x.uci.l",sigma.x))[line,]
+  mean.l[,i]<-get(paste0("x.mean.l",sigma.x))[line,]
+  mean.g[,i]<-get(paste0("x.meang",sigma.x))[line,]
+
+}
+ 
+mean.g.17.melt<-data.frame(mean.g,position=1:m2)%>% melt(.,id.vars="position")%>%
+    rename(.,"Estimation.g"="value","Parameter"="variable")
+lower.g.melt<-data.frame(lower.g,position=1:m2)%>%
+  melt(.,id.vars="position")
+upper.g.melt<-data.frame(upper.g,position=1:m2)%>%
+    melt(.,id.vars="position")
+
+interval.g<-merge(lower.g.melt,upper.g.melt,by=c("variable","position"))%>%
+  rename(.,c("Gaussian.lower"="value.x","Gaussian.upper"="value.y","Parameter"="variable"))
+mean.l.17.melt<-data.frame(mean.l,position=1:m2)%>%
+  melt(.,id.vars="position")%>%
+  rename(.,"Estimation.l"="value","Parameter"="variable")
+lower.l.melt<-data.frame(lower.l,position=1:m2)%>%
+  melt(.,id.vars="position")
+upper.l.melt<-data.frame(upper.l,position=1:m2)%>%
+    melt(.,id.vars="position")
+
+interval.l<-merge(lower.l.melt,upper.l.melt,by=c("variable","position"))%>%
+  rename(.,c("Laplace.lower"="value.x","Laplace.upper"="value.y","Parameter"="variable"))
+
+interval.g.l<-merge(interval.g,interval.l,by=c("Parameter","position"))
+
+true<-matrix(rep(X[20,],14),ncol=14,byrow =FALSE)
+true.melt<-data.frame(true,position=1:m2)%>%
+  melt(.,id.vars="position")%>%
+   rename(.,c("True"="value","Parameter"="variable"))
+
+interval.l.true<-merge(true.melt,interval.l,by=c("Parameter","position"))
+interval.l.true.mean<-merge(interval.l.true,mean.l.17.melt,by=c("position","Parameter"))
+
+
+interval.g.l.true<-merge(interval.g.l,true.melt,by=c("Parameter","position"))%>%
+  melt(.,id.vars=c("Parameter","position"))
+interval.g.l.true$Parameter<-factor(interval.g.l.true$Parameter,labels = listsig)
+
+interval.g.l<-merge(interval.g,interval.l,by=c("Parameter","position"))
+interval.g.l.true<-merge(interval.g,true.melt,by=c("Parameter","position"))%>%
+  merge(.,mean.g.17.melt,by=c("Parameter","position"))%>%
+  merge(.,mean.l.17.melt,by=c("Parameter","position"))%>%
+  merge(.,interval.l,by=c("Parameter","position"))
+
+head(interval.g.l.true)
+p_100<-
+interval.g.l.true%>%
+   filter(Parameter=='X4')%>%
+  ggplot()+
+   geom_line(aes(x=position,y=True),color='red')+
+  geom_point(aes(x=position,y=True),color='red')+
+  geom_line(aes(x=position,y=Estimation.l),color='darkblue',size=1)+
+  geom_errorbar(aes(x=position,ymin=Laplace.lower,ymax=Laplace.upper),color="blue")+
+  geom_line(aes(x=position,y=Estimation.g),color='darkgreen',linetype="dashed",size=1.5)+
+  geom_errorbar(aes(x=position,ymin=Gaussian.lower,ymax=Gaussian.upper),color="green")+
+  #geom_line(aes(x=sample_u.1000.mean$X2,y=sample_u.1000.mean$value),color="yellow",size=1)+
+  #scale_color_manual("Distribution",values=c("red","blue","green","yellow"),labels=c("True","Laplace","Laplace","Uniform"),guide = guide_legend(override.aes=aes(fill=NA)))+theme(legend.position ="right" )+
+theme_bw(base_size = 10) +
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+labs(x="Position",y="Pixel value")
+
+grid.arrange(p_100,p_10000)
+```
+
+
+```{r pressure, echo=TRUE}
+
+plotsd<-function(dataset)  {
+ggplot(melt(dataset), aes(x = X1, y = X2,fill=Value)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="grey90", high="black",limits=c(0,400)) +
+  labs(x="x", y="y") +
+  ggtitle(paste("SD" ,"sigma.x=",sigma.x,sep="_"))+
+theme_bw() + theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+                                          axis.text.y=element_text(size=9),
+                                       plot.title=element_text(size=11))
+}
+
+for (i in 1:length(listsig)){
+  sigma.x<-listsig[i]
+  print(plotsd(bias_abs_array[,,i]))
+}
+
+```
+
+```{r pressure, echo=TRUE}
+
+
+plotbias<-function(dataset)  {
+ggplot(melt(dataset), aes(x = X1, y = X2,fill=Value)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="grey90", high="black",limits=c(0,450)) +
+  labs(x="x", y="y") +
+  ggtitle(paste("Bias" ,"sigma.x=",sigma.x,sep="_"))+
+theme_bw() + theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+                                          axis.text.y=element_text(size=9),
+                                       plot.title=element_text(size=11))
+}
+
+for (i in 1:length(listsig)){
+  sigma.x<-listsig[i]
+  print(plotbias(bias_abs_array[,,i]))
+}
+
+```
+
+
+
+```{r pressure, echo=TRUE}
+
+Y<-Y.g
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=5) 
+
+iteration=100
+ pixel_rss<-numeric(length(listsig))
+ pixel_mse<-numeric(length(listsig))
+ pixel_bias<-numeric(length(listsig))
+ pixel_sd<-numeric(length(listsig))
+ pixel_estiamtion<-matrix(0,iteration,length(listsig))
+ pixel_mu_estiamtion<-matrix(0,iteration,length(listsig))
+pixel_sample_mse<-matrix(0,iteration,length(listsig))
+
+ row_list<-c(22,22,18,20,21,7,6)
+ col_list<-c(25,16,13,14,25,18,18)
+#  #only one pixel is high value
+#  row_list<-c(22,22,21,23)
+#  col_list<-c(25,27,26,26)
+#  #only two pixels are high value
+# row_list<-c(22,22,18,18,7,9,9,7,8,8)
+# col_list<-c(16,12,12,16,19,19,21,21,37,43)
+# #three pixels are high value 4 6
+# row_list<-c(18,22,18,8,20,8,9,13,16)
+# col_list<-c(13,13,15,19,38,21,20,34,34)
+# #whole pixels are high value 5
+# row_list<-c(19,19,21,21,8,13,14,14,16)
+# col_list<-c(13,15,13,15,20,35,37,40,35)
+# 
+# #only two pixel is 0
+#  row_list<-c(21,21,23,23,19,20,9,8,8,9)
+#  col_list<-c(25,27,27,25,35,36,35,36,44,45)
+#  #three pixel is 0
+#  row_list<-c(7,7,9,19,22,12,21,21,21,15)
+#  col_list<-c(18,22,22,17,17,33,37,39,42,47)
+#   #four pixel is 0
+#  row_list<-c(6,10,22,21,6,13,27,25,24,12,10)
+#  col_list<-c(18,18,36,44,16,16,16,22,22,28,31)
+#  
+ 
+  for (j in 1:length(row_list)){ #number of pixel we want to analysis
+    num_row<-row_list[j]
+    num_col<-col_list[j]
+   for (i in 1:length(listsig)){
+     sigma.x<-listsig[i]
+     pixel_estiamtion[,i]<-(get(paste0("xstore.g",sigma.x)))[num_row,num_col,(nburn+1):(nburn+iteration)]
+     # pixel_mu_estiamtion[,i]<-(get(paste0("mustore.",sigma.x)))[num_row,num_col,(nburn+1):(nburn+iteration)]
+    pixel_sample_mse[,i]<-(rep(X[num_row,num_col],iteration)-pixel_estiamtion[,i])^2
+    pixel_mse[i]<-mean((rep(X[num_row,num_col],iteration)-pixel_estiamtion[,i])^2)
+ pixel_bias[i]<-mean(rep(X[num_row,num_col],iteration)-pixel_estiamtion[,i])
+     pixel_sd[i]<-sd(pixel_estiamtion[,i])
+     pixel_rss[i]<-sum(((rep(Y[num_row,num_col],iteration)-pixel_mu_estiamtion[,i])^2))
+  assign(paste("pixel","rss",num_row,num_col,sigma.x,sep="_"), pixel_rss[i])
+   assign(paste("pixel","estimation",num_row,num_col,sigma.x,sep="_"),pixel_estiamtion[,i])
+    assign(paste("pixel","sample","mse",num_row,num_col,sigma.x,sep="_"),pixel_sample_mse[,i])
+ assign(paste("pixel","logbias",num_row,num_col,sigma.x,sep="_"),log(abs(pixel_bias[i])))
+     assign(paste("pixel","sd",num_row,num_col,sigma.x,sep="_"),pixel_sd[i])
+ assign(paste("pixel","bias",num_row,num_col,sigma.x,sep="_"),abs(pixel_bias[i]))
+    assign(paste("pixel","mse",num_row,num_col,sigma.x,sep="_"),pixel_mse[i])
+   }
+   assign(paste("pixel","estimation","list",j,sep = "_"),pixel_estiamtion)
+  assign(paste("pixel","sample","mse","list",j,sep = "_"),pixel_sample_mse)
+ assign(paste("pixel","logbias","list",j,sep="_"),log(abs(pixel_bias)))
+   assign(paste("pixel","sd","list",j,sep="_"),pixel_sd)
+ assign(paste("pixel","bias","list",j,sep = "_"),pixel_bias)
+  assign(paste("pixel","mse","list",j,sep="_"),pixel_mse)
+   assign(paste("pixel","rss","list",j,sep="_"),pixel_rss)
+ 
+  }
+
+
+pixelestimate<-do.call(cbind,lapply(paste0("pixel_estimation_list_",1:length(row_list)),get))
+pixelestimate_mean<-apply(pixelestimate,2,mean)
+rsspixel<-log(do.call(cbind,lapply(paste0("pixel_rss_list_",1:length(row_list)),get)))
+estiamte_pixel<-matrix(pixelestimate_mean,byrow =FALSE,nrow=14)
+logbiaspixel<-do.call(cbind,lapply(paste0("pixel_logbias_list_",1:length(row_list)),get))
+  biaspixel<-abs(do.call(cbind,lapply(paste0("pixel_bias_list_",1:length(row_list)),get)))
+  msepixel<-log(do.call(cbind,lapply(paste0("pixel_mse_list_",1:length(row_list)),get)))
+  sdpixel<-do.call(cbind,lapply(paste0("pixel_sd_list_",1:length(row_list)),get))
+
+```
+
+
+```{r, fig.width=6, fig.height=4}
+#change the ggplot ylim
+#unique to remove the duplicate columns
+#table(factor(X, 1:states))
+estimateframe<-cbind(melt(estiamte_pixel),melt(sdpixel)[,3],melt(logbiaspixel)[,3],melt(biaspixel)[,3],melt(msepixel)[,3],melt(rsspixel)[,3])
+# estimateframe<-cbind(melt(estiamte_pixel),melt(sdpixel)[,3],melt(rsspixel)[,3])
+
+names(estimateframe)<-c("loglistsigma.x","pixel","estimate","sd","logbias","bias","mse","rss")
+# names(estimateframe)<-c("loglistsigma.x","pixel","estimate","sd","rss")
+
+
+estimateframe$loglistsigma.x<-rep(loglistsigma.x,7)
+region_level<-c(rep(1,each=14*4),rep(0,each=14*3))
+region_level<-factor(region_level,labels=c("background","hot region"))
+#region_level<-factor(region_level,labels=c("main","others"))
+estimateframe1<-cbind(estimateframe,region_level)
+estimateframe1$pixel<-factor(estimateframe1$pixel)
+estimateframe1$pixel<-factor(estimateframe1$pixel,labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7"))
+
+
+ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=estimate,color=pixel,shape=region_level)) +
+  geom_line()+  geom_point()+geom_errorbar(aes(ymin=estimate-sd,ymax=estimate+sd), width=.2,position=position_dodge(.05))+ labs(title="", color="Pixel", shape="Region", x=expression(paste("log(",tau,")")),y="Value")+
+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark blue")) +theme_bw(base_size = 14)+expand_limits(y=c(0,1250))+
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+
+
+
+ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=mse,color=pixel,shape=region_level)) +
+  geom_line()+  geom_point()+ labs(title=" ", color="Pixel", shape="Region", x=expression(paste("log(",tau,")")),y="log(MSE)")+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green")) +ylim(2,14)+theme_bw(base_size = 14)+
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=rss,color=pixel,shape=region_level)) +
+  # geom_line()+  geom_point()+ labs(title="log(RSS)", color="Pixels", shape="Region", x=expression(paste("log(",tau,")")),y="")+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green")) +theme_bw(base_size = 14)+
+ theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+
+# ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=sd,color=pixel,shape=region_level)) +
+  # geom_line()+  geom_point()+ labs(title="SD", color="Pixels", shape="Region", x=expression(paste("log(",tau,")")),y="SD")+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green")) +ylim(0,5)
+
+ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=sd,color=pixel,shape=region_level)) +
+  geom_line()+  geom_point()+ labs(title="SD", color="Pixel", shape="Region", x=expression(paste("log(",tau,")")),y="SD")+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green")) 
+
+
+# #ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=logbias,color=pixel,shape=region_level)) +
+#   geom_line()+  geom_point()+ labs(title="log(Bias)", color="Pixels", shape="Region", x=expression(paste("log(",tau,")")),y="log(Bias)")+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green")) +ylim(-1,3)
+
+
+ggplot(data = estimateframe1,aes(x=loglistsigma.x,group=pixel,y=bias,shape=region_level,color=pixel)) +
+  geom_line()+geom_point()+labs(title="|Bias|",shape="Region",color="Pixels", x=expression(paste("log(",tau,")")),y="|Bias|")+
+scale_color_manual(labels=c("pixel1","pixel2","pixel3","pixel4","pixel5","pixel6","pixel7","pixel8","pixel9","pixel10","pixel11"), values = c("black","steel blue","red","green","yellow","orange","blue","dark green","grey","purple","dark green"))
+
+
+```
+
+
+```{r pressure, echo=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=5) 
+
+a<-list(c(11:17),8,c(13:15),c(19:21),c(21:23),22)
+b<-list(34,c(37:43),c(35:37),c(13:15),26,c(25:27))
+  
+
+for (i in 1:length(listsig)) {
+     sigma.x<-listsig[i]
+     estiamtion<-(get(paste0("xstore.",sigma.x)))[,,(nburn+1):(nburn+iteration)]
+     sample_mse<-(replicate(n=iteration,X,simplify ="array")-estiamtion)^2
+     assign(paste("global","mse",sigma.x,sep="_"),apply(sample_mse[,,],3,mean))
+for (j in 1:5) {
+      if (j<=4 & length(a[[j]])==1 & length(b[[j]])>1){
+      assign(paste("region",j,"mse",sigma.x,sep="_"),apply(sample_mse[a[[j]],b[[j]], ],2, mean))
+      } else{
+      if (j<=4 & length(a[[j]])>1 & length(b[[j]])==1){
+      assign(paste("region",j,"mse",sigma.x,sep="_"),apply(sample_mse[a[[j]],b[[j]], ], 2, mean))
+      } else{ 
+        if (j<=4 & length(a[[j]]>1 & length(b[[j]]>1))){
+      assign(paste("region",j,"mse",sigma.x,sep="_"),apply(sample_mse[a[[j]],b[[j]],], 3, mean))
+        } else { if (j>4){
+          assign(paste("region",j,"mse",sigma.x,sep="_"),apply(rbind(sample_mse[a[[j]],b[[j]],],sample_mse[a[[j+1]],b[[j+1]],]),2,mean))
+        }
+        }
+        
+    }
+   }
+}
+}
+
+  region1<-do.call(cbind,lapply(paste("region",1,"mse",listsig,sep="_"),get))
+  region2<-do.call(cbind,lapply(paste("region",2,"mse",listsig,sep="_"),get))
+  region3<-do.call(cbind,lapply(paste("region",3,"mse",listsig,sep="_"),get))
+  region4<-do.call(cbind,lapply(paste("region",4,"mse",listsig,sep="_"),get))
+  region5<-do.call(cbind,lapply(paste("region",5,"mse",listsig,sep="_"),get))
+
+mse_region_boplot<-function(dataset)  {
+pixelfactor<-rep(listsig,each=iteration)
+region.mse<-cbind(log(as.vector(dataset)),pixelfactor)
+region.mse<-data.frame(region.mse)
+region.mse$pixelfactor<-as.factor(region.mse$pixelfactor)
+ggplot(region.mse,aes(x=pixelfactor,y=V1))+geom_boxplot()+labs(title=paste("Box plot of region",i,sep = "_", x=expression(paste(tau)),y="log(MSE)"))
+}
+
+for (i in 1:5){
+  print(mse_region_boplot(get(paste0("region",i))))
+}
+  
+
+
+```
+
+
+```{r}
+lambdas<-seq(1,20,2)
+lambdas<-c(10,40,80,100,200,500,700,1000,10000,100000)
+sort(lambdas)
+ggplot(data = data.frame(x = 0:100)) +
+  lapply(lambdas, function(l) geom_point(aes(x = x, y = dpois(x, lambda = l), color = factor(l)))) +
+  lapply(lambdas, function(l) stat_function(fun = dnorm, args = list(mean = l, sd = sqrt(l)), 
+                                            aes(x = x, color = factor(l))))+
+  scale_color_discrete(name = expression(lambda),breaks = sort(lambdas))+
+  ylab("f(x)")+ scale_y_continuous(breaks =seq(0,0.5,0.01)) 
+    
+```
+
+```{r}
+#laplace as one case of t-distribution.
+
+#fat tail lapalace and normal distirbuition
+# high peak
+
+# install.packages("LaplacesDemon")
+library(LaplacesDemon)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+x=seq(from=0, to=100, by=1)
+sample_data1<-cbind(y_norm1=dnorm(x,0,0.1),y_norm2=dnorm(x,0,1))
+sample_data1<-melt(sample_data1)
+sample_data1<-cbind(sample_data1,x_value=rep(x,2))
+
+sample_data1%>%
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=0.1")),expression(paste(tau,"=1"))))
+
+sample_data2<-cbind(y_laplace1=dlaplace(x,0,0.1),y_laplace2=dlaplace(x,0,1))
+sample_data2<-melt(sample_data2)
+  head(sample_data2)
+sample_data2<-cbind(sample_data2,x_value=rep(x,2))
+head(sample_data2)
+sample_data2%>% 
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Density")+scale_colour_manual(expression(paste(tau)),values=c("red","black","blue"),labels=c(expression(paste(tau,"=0.1")),expression(paste(tau,"=1"))))+ theme(legend.position = "bottom")+ 
+  theme_bw(base_size = 14) 
+
+
+
+sample_data3<-data.frame(y_uniform1=dunif(x,0,1100))
+sample_data3<-melt(sample_data3)%>%
+    rename("X2"="variable")
+
+sample_data3<-cbind(sample_data3,x_value=rep(x,1))
+
+head(sample_data1)
+head(sample_data2)
+head(sample_data3)
+
+sample_data3%>% 
+  group_by(X2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=X2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=50"))))
+
+t<-merge(sample_data1,sample_data2,by=c("x_value","Var1"))%>%
+  merge(.,sample_data3,by=c("x_value"))%>%
+  rename(Gaussian=value.x,Laplace=value.y,Uniform=value)%>%
+  select(.,-c(Var1))
+
+head(t)
+
+t%>%
+   ggplot(.,aes(x=x_value))+geom_line(aes(y=Gaussian,group=Var2.x,color="blue"))+geom_line(aes(y=Laplace,group=Var2.y,color="green"))+geom_line(aes(y=Uniform,color="red"))+
+labs(title=" ", x="Value",y="Density")+scale_colour_manual("Distribution",values=c("blue","green","red"),labels=c("Gaussian","Laplace","Uniform"))+  theme_bw(base_size = 12) +
+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.box="vertical")+xlim(c(0,200))+
+  theme(legend.position = "bottom")+
+geom_point(aes(y=Gaussian,group=Var2.x,color="blue",shape=factor(Var2.x,labels = c("1","2"))))+geom_point(aes(y=Laplace,group=Var2.y,color="green",shape=factor(Var2.y,labels =c( "1","2"))))+geom_point(aes(y=Uniform,color="red"))+
+scale_shape_manual(expression(paste(tau)),values=c(1,18),labels=c(expression(paste(tau,"=0.1")),expression(paste(tau,"=1"))))
+                                                          
+
+###########gaussian compare
+
+x=seq(from=0, to=200, by=1)
+sample_data1<-cbind(y_norm=dnorm(x,0,0.01),y_norm1=dnorm(x,0,0.1))
+sample_data1<-cbind(sample_data1,x_value=rep(x,2))
+
+sample_data1%>% 
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Density")+scale_color_manual("Distributions",values=c("red","black"),labels=c("Gaussian distribution1","Gaussian distribution2"))
+
+
+########################
+
+  x=seq(from=0, to=200, by=1)
+sample_data2<-cbind(y_laplace=dlaplace(x,0,0.01),y_laplace1=dlaplace(x,0,0.1))
+sample_data2<-cbind(sample_data2,x_value=rep(x,2))
+
+sample_data2%>% 
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Density")+scale_color_manual("Distributions",values=c("red","black"),labels=c("Laplace distribution1","Laplace distribution2"))
+
+melt_data<-merge(sample_data1,sample_data2,by=c("x_value"))
+head(melt_data)
+
+melt_data%>%
+   ggplot()+geom_line(aes(y=value.x,x=x_value,color=Var2.x,group=Var2.x))+
+    geom_line(aes(y=value.y,x=x_value,color=Var2.y,group=Var2.y))+labs(title=" ", x="Value",y="Probability")+scale_color_manual("Distribution",values=c("red","black"),labels=c("Gaussian1","Gaussian2"))+  theme_bw(base_size = 14) +
+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+xlim(c(-200,200))+
+  theme(legend.position = "bottom")
+
+```
+
+```{r include=TRUE}
+
+
+str(xstore)
+#Trace Plot
+Pixel<-as.vector (xstore[21,13,9000:10000])
+dataframe1<-cbind(Iteration=c(9000:10000),Pixel)
+dataframe1<-as.data.frame(dataframe1)
+g3<-ggplot(data=dataframe1,aes(x=Iteration,y=Pixel))+geom_line(color="grey")+geom_point(color="red")+
+  ggtitle("")+
+ theme_ipsum() +
+      transition_reveal(Iteration)+
+  theme_bw(base_size = 14) 
+
+g3
+  
+
+Pixel<-as.vector (xstore[19,16,9000:10000])
+dataframe1<-cbind(Iteration=c(9000:10000),Pixel)
+dataframe1<-as.data.frame(dataframe1)
+g4<-ggplot(data=dataframe1,aes(x=Iteration,y=Pixel))+geom_line(color="grey")+geom_point(color="red")+
+  ggtitle("Trace Plot Of Specify Pixel")+
+ theme_ipsum() +
+      transition_reveal(Iteration)
+  
+
+g4
+
+install.packages("animation")
+
+
+library(ggplot2)
+library(gganimate)
+library(hrbrthemes)
+
+
+
+
+
+# Save at gif:
+anim_save("pixel estimation.gif")
+
+
+
+
+```
+
+
+```{r pressure, echo=TRUE}
+
+plotsd<-function(dataset)  {
+ggplot(melt(dataset), aes(x = X1, y = X2,fill=Value)) + 
+ geom_raster(aes(fill=value)) + 
+  scale_fill_gradient(low="grey90", high="black",limits=c(0,400)) +
+  labs(x="x", y="y") +
+  ggtitle(paste("SD" ,"sigma.x=",sigma.x,sep="_"))+
+theme_bw() + theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
+                                          axis.text.y=element_text(size=9),
+                                       plot.title=element_text(size=11))
+}
+
+for (i in 1:length(listsig)){
+  sigma.x<-listsig[i]
+  print(plotsd(bias_abs_array[,,i]))
+}
+
+getwd()
+save.image("delta=1.RData")
+```
+
+
+
+```{r}
+lambdas<-seq(1,20,2)
+sort(lambdas)
+ggplot(data = data.frame(x = 0:100)) +
+  lapply(lambdas, function(l) geom_point(aes(x = x, y = dpois(x, lambda = l), color = factor(l)))) +
+  lapply(lambdas, function(l) stat_function(fun = dnorm, args = list(mean = l, sd = sqrt(l)), 
+                                            aes(x = x, color = factor(l))))+
+  scale_color_discrete(name = expression(lambda))+
+  ylab("f(x)")+ scale_y_continuous(breaks =seq(0,0.5,0.01))
+
+```
+
+```{r}
+#laplace as one case of t-distribution.
+
+#fat tail lapalace and normal distirbuition
+# high peak
+
+# install.packages("LaplacesDemon")
+library(LaplacesDemon)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+x=seq(from=0, to=1000, by=1)
+sample_data1<-cbind(y_norm1=dnorm(x,0,10),y_norm2=dnorm(x,0,100))
+sample_data1<-melt(sample_data1)
+head(sample_data1)
+sample_data1<-cbind(sample_data1,x_value=rep(x,2))
+sample_data1%>%
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=100"))))
+
+sample_data2<-cbind(y_laplace1=dlaplace(x,0,10),y_laplace2=dlaplace(x,0,100))
+sample_data2<-melt(sample_data2)
+sample_data2<-cbind(sample_data2,x_value=rep(x,2))
+sample_data2%>% 
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=100"))))
+
+
+     #laplace as one case of t-distribution.
+
+#fat tail lapalace and normal distirbuition
+# high peak
+install.packages("extraDistr")
+library(extraDistr)
+sample_data3<-cbind(Hhalf_cautchy1=dhcauchy(x,10),Half_cautchy=dhcauchy(x,50))
+sample_data3<-melt(sample_data3)
+sample_data3<-cbind(sample_data3,x_value=rep(x,2))
+sample_data3%>% 
+  group_by(Var2)%>%
+  ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=50"))))
+
+
+sample_data4<-cbind(unform1=dunif(x,0,100),unform2=dunif(x,0,100))
+sample_data4<-melt(sample_data4)
+sample_data4<-cbind(sample_data4,x_value=rep(x,2))
+
+sample_data4%>% 
+group_by(Var2)%>%
+ggplot(.,aes(y=value,x=x_value,color=Var2))+geom_line()+labs(title=" ", x="Value",y="Probability")+scale_colour_manual(expression(paste(tau)),values=c("red","black"),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=50"))))
+```
+
+```{r}
+t<-merge(sample_data1,sample_data2,by=c("x_value","Var1"))%>%
+  rename(Gaussian=value.x,Laplace=value.y,g_dist=Var2.x,l_dist=Var2.y)
+head(t)
+
+t1<-merge(t,sample_data4,by=c("x_value","Var1"))%>%
+    rename(Uniform=value,Unifrom_dis=Var2)%>%
+  select(.,-c("Var1"))
+head(t1)
+t1%>%
+   ggplot(.,aes(x=x_value))+geom_line(aes(y=Gaussian,group=g_dist,color="blue",linetype=factor(g_dist,labels = c("1","2","3"))),size=1)+geom_line(aes(y=Laplace,group=l_dist,color="green",linetype=factor(l_dist,labels = c("1","2","3"))),size=1)+geom_line(aes(y=Uniform,group=Unifrom_dis,color="red",linetype=factor(Unifrom_dis,labels=c("1","2","3"))),size=1)+
+labs(title=" ", x="Value",y="Density")+scale_colour_manual("Distribution",values=c("red","black","darkgreen"),labels=c("Gaussian","Laplace","Uniform"))+  theme_bw(base_size = 10) +
+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.box="vertical")+xlim(c(0,300))+
+  theme(legend.position =c(0.9,0.76))+
+scale_linetype_manual(expression(paste(tau)),values=c(1,2,3),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=100")),expression(paste(tau,"=1000"))))+
+       theme(axis.text.x = element_text(size = 20),axis.text.y = element_text(size = 15), axis.title.x =element_text(size=22),axis.title.y=element_text(size=15))+
+   theme(legend.text = element_text(size=12),panel.border=element_rect(size=1.5))
+
+t%>%
+   ggplot(.,aes(x=log2(x_value)))+geom_line(aes(y=(Gaussian),group=g_dist,color="blue",linetype=factor(g_dist,labels = c("1","2"))),size=1)+geom_line(aes(y=(Laplace),group=l_dist,color="green",linetype=factor(l_dist,labels = c("1","2"))),size=1)+
+labs(title=" ", x="Value",y="Density")+scale_colour_manual("Distribution",values=c("red","black","darkgreen"),labels=c("Gaussian","Laplace","Uniform"))+  theme_bw(base_size = 10) +
+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),legend.box="vertical")+xlim(c(0,10))+
+  theme(legend.position =c(0.9,0.76))+
+scale_linetype_manual(expression(paste(tau)),values=c(1,2),labels=c(expression(paste(tau,"=10")),expression(paste(tau,"=100"))))+
+       theme(axis.text.x = element_text(size = 20),axis.text.y = element_text(size = 15), axis.title.x =element_text(size=22),axis.title.y=element_text(size=15))+
+   theme(legend.text = element_text(size=12),panel.border=element_rect(size=1.5))
+
+
+```
+
