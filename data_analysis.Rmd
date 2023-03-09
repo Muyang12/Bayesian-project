@@ -13,7 +13,6 @@ editor_options:
 # Load estimation from differrnt datasets
 listsig<-c(0.0001,0.001,0.01,0.1,1,10,40,80,100,200,500,700,1000,1500,2000,2500,10000,100000)
 load("C:/Users/mmmz/OneDrive - University of Leeds/third year/REAL_DATA/smoothing.RData")
-#listsig<-c(0.001,0.01,0.1,1)
 library(tidyverse)
 library(dplyr)
 library(sf)
