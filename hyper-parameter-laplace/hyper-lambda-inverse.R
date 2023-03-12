@@ -167,7 +167,7 @@ mcmc_hyper<-function(control_list){
                        tau.mean<-apply(tau.store[,,nburn:nburn+iteration],c(1,2),mean)
                        x.mean<-apply(xstore[,,nburn:nburn+iteration],c(1,2),mean)
                        lambda.mean<-mean(lambda.store[nburn:nburn+iteration])
-                     return(list(raccept.lambda=raccept.lambda,lambda.store=lambda.store,lambda.mean=lambda.mean,naccept.lambda=naccept.lambda,naccept.tau.x=naccept.tau.x,data_control=data_control,Y=Y,x.mean=x.mean,xstore=xstore,x.post.dif=x.post.dif,tau.post.dif=tau.post.dif,tau.store=tau.store,mustore=mustore,raccept.x=raccept.x,raccept.tau.x.store=raccept.tau.x.store,naccept.x=naccept.x))
+                     return(list(tau.mean=tau.mean,raccept.lambda=raccept.lambda,lambda.store=lambda.store,lambda.mean=lambda.mean,naccept.lambda=naccept.lambda,naccept.tau.x=naccept.tau.x,data_control=data_control,Y=Y,x.mean=x.mean,xstore=xstore,x.post.dif=x.post.dif,tau.post.dif=tau.post.dif,tau.store=tau.store,mustore=mustore,raccept.x=raccept.x,raccept.tau.x.store=raccept.tau.x.store,naccept.x=naccept.x))
 
 }
 
