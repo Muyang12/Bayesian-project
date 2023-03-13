@@ -135,13 +135,13 @@ mcmc_hyper<-function(control_list){
                            naccept.tau.x=naccept.tau.x=matrix(0,m1,m2)
                            var.tau.sample = var.tau.sample*(1 + raccept.tau.x/0.234)/2
                            tmp1<-array(0,dim=c(2,m1,m2))
-                           tmp1[1,,]=matrix(1,m1,m2)
+                           tmp1[1,,]=matrix(5,m1,m2)
                            tmp1[2,,]=var.tau.sample
                            var.tau.sample = apply(tmp1,c(2,3),max)
                                       raccept.lambda<-naccept.lambda/nprop.lambda
                                       naccept.lambda=nprop.lambda=0
                                       lambda.var1=lambda.var*(1+raccept.lambda/0.234)/2
-                                      lambda.var=max(0.01,lambda.var1)
+                                      lambda.var=max(0.1,lambda.var1)
                          }
                          
                          ##store results 
